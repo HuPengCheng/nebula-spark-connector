@@ -18,6 +18,8 @@ import com.vesoft.nebula.connector.NebulaTemplate.{
   UPDATE_EDGE_TEMPLATE,
   UPDATE_VALUE_TEMPLATE,
   UPDATE_VERTEX_TEMPLATE,
+  UPSERT_VERTEX_TEMPLATE,
+  UPSERT_EDGE_TEMPLATE,
   VERTEX_VALUE_TEMPLATE,
   VERTEX_VALUE_TEMPLATE_WITH_POLICY
 }
@@ -316,6 +318,41 @@ object NebulaExecutor {
   }
 
   /**
+    * construct update statement for vertex
+    */
+  def toUpsertExecuteStatement(tagName: String, nebulaVertices: NebulaVertices): String = {
+    nebulaVertices.values
+      .map { vertex =>
+        var index = 0
+        UPSERT_VERTEX_TEMPLATE.format(
+          DataTypeEnum.VERTEX.toString.toUpperCase,
+          tagName,
+          nebulaVertices.policy match {
+            case Some(KeyPolicy.HASH) =>
+              ENDPOINT_TEMPLATE.format(KeyPolicy.HASH.toString, vertex.vertexIDSlice)
+            case Some(KeyPolicy.UUID) =>
+              ENDPOINT_TEMPLATE.format(KeyPolicy.UUID.toString, vertex.vertexIDSlice)
+            case None =>
+              vertex.vertexIDSlice
+            case _ =>
+              throw new IllegalArgumentException(
+                s"vertex id policy ${nebulaVertices.policy.get} is not supported")
+          },
+          vertex.values
+            .filter(_ != null)
+            .map { value =>
+              val updateValue =
+                UPDATE_VALUE_TEMPLATE.format(nebulaVertices.propNames.get(index), value)
+              index += 1
+              updateValue
+            }
+            .mkString(",")
+        )
+      }
+      .mkString(";")
+  }
+
+  /**
     * construct update statement for edge
     */
   def toUpdateExecuteStatement(edgeName: String, nebulaEdges: NebulaEdges): String = {
@@ -351,6 +388,55 @@ object NebulaExecutor {
           },
           rank,
           edge.values
+            .map { value =>
+              val updateValue =
+                UPDATE_VALUE_TEMPLATE.format(nebulaEdges.propNames.get(index), value)
+              index += 1
+              updateValue
+            }
+            .mkString(",")
+        )
+      }
+      .mkString(";")
+  }
+
+  /**
+    * construct upsert statement for edge
+    */
+  def toUpsertExecuteStatement(edgeName: String, nebulaEdges: NebulaEdges): String = {
+
+    nebulaEdges.values
+      .map { edge =>
+        var index = 0
+        val rank  = if (edge.rank.isEmpty) { 0 } else { edge.rank.get }
+        UPSERT_EDGE_TEMPLATE.format(
+          DataTypeEnum.EDGE.toString.toUpperCase,
+          edgeName,
+          nebulaEdges.getSourcePolicy match {
+            case Some(KeyPolicy.HASH) =>
+              ENDPOINT_TEMPLATE.format(KeyPolicy.HASH.toString, edge.source)
+            case Some(KeyPolicy.UUID) =>
+              ENDPOINT_TEMPLATE.format(KeyPolicy.UUID.toString, edge.source)
+            case None =>
+              edge.source
+            case _ =>
+              throw new IllegalArgumentException(
+                s"source policy ${nebulaEdges.getTargetPolicy.get} is not supported")
+          },
+          nebulaEdges.getTargetPolicy match {
+            case Some(KeyPolicy.HASH) =>
+              ENDPOINT_TEMPLATE.format(KeyPolicy.HASH.toString, edge.target)
+            case Some(KeyPolicy.UUID) =>
+              ENDPOINT_TEMPLATE.format(KeyPolicy.UUID.toString, edge.target)
+            case None =>
+              edge.target
+            case _ =>
+              throw new IllegalArgumentException(
+                s"target policy ${nebulaEdges.getTargetPolicy.get} is not supported")
+          },
+          rank,
+          edge.values
+            .filter(_ != null)
             .map { value =>
               val updateValue =
                 UPDATE_VALUE_TEMPLATE.format(nebulaEdges.propNames.get(index), value)

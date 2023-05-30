@@ -37,10 +37,10 @@ class NebulaEdgeWriter(nebulaOptions: NebulaOptions,
     else metaProvider.getEdgeSchema(nebulaOptions.spaceName, nebulaOptions.label)
 
   val srcPolicy =
-    if (nebulaOptions.srcPolicy.isEmpty) Option.empty
+    if (null == nebulaOptions.srcPolicy || nebulaOptions.srcPolicy.isEmpty) Option.empty
     else Option(KeyPolicy.withName(nebulaOptions.srcPolicy))
   val dstPolicy = {
-    if (nebulaOptions.dstPolicy.isEmpty) Option.empty
+    if (null == nebulaOptions.dstPolicy || nebulaOptions.dstPolicy.isEmpty) Option.empty
     else Option(KeyPolicy.withName(nebulaOptions.dstPolicy))
   }
 
@@ -86,6 +86,8 @@ class NebulaEdgeWriter(nebulaOptions: NebulaOptions,
       case WriteMode.INSERT => NebulaExecutor.toExecuteSentence(nebulaOptions.label, nebulaEdges)
       case WriteMode.UPDATE =>
         NebulaExecutor.toUpdateExecuteStatement(nebulaOptions.label, nebulaEdges)
+      case WriteMode.UPSERT =>
+        NebulaExecutor.toUpsertExecuteStatement(nebulaOptions.label, nebulaEdges)
       case WriteMode.DELETE =>
         NebulaExecutor.toDeleteExecuteStatement(nebulaOptions.label, nebulaEdges)
       case _ =>

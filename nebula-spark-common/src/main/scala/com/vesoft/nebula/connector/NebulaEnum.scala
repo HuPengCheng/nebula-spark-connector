@@ -35,5 +35,6 @@ object WriteMode extends Enumeration {
   type Mode = Value
   val INSERT = Value("insert")
   val UPDATE = Value("update")
+  val UPSERT = Value("upsert")
   val DELETE = Value("delete")
 }

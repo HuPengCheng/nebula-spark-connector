@@ -31,7 +31,7 @@ class NebulaVertexWriter(nebulaOptions: NebulaOptions, vertexIndex: Int, schema:
     else metaProvider.getTagSchema(nebulaOptions.spaceName, nebulaOptions.label)
 
   val policy = {
-    if (nebulaOptions.vidPolicy.isEmpty) Option.empty
+    if (null == nebulaOptions.vidPolicy || nebulaOptions.vidPolicy.isEmpty) Option.empty
     else Option(KeyPolicy.withName(nebulaOptions.vidPolicy))
   }
 
@@ -70,6 +70,8 @@ class NebulaVertexWriter(nebulaOptions: NebulaOptions, vertexIndex: Int, schema:
       case WriteMode.INSERT => NebulaExecutor.toExecuteSentence(nebulaOptions.label, nebulaVertices)
       case WriteMode.UPDATE =>
         NebulaExecutor.toUpdateExecuteStatement(nebulaOptions.label, nebulaVertices)
+      case WriteMode.UPSERT =>
+        NebulaExecutor.toUpsertExecuteStatement(nebulaOptions.label, nebulaVertices)
       case WriteMode.DELETE =>
         NebulaExecutor.toDeleteExecuteStatement(nebulaVertices, nebulaOptions.deleteEdge)
       case _ =>
